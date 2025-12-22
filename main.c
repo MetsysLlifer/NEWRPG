@@ -11,25 +11,27 @@ void CleanupEntities(Entity* entities, int* count) {
 }
 
 int main() {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hybrid Magic - Scrolling Compendium");
-    SetTargetFPS(60); 
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hybrid Magic - Complete Edition");
+    SetTargetFPS(256); 
 
     Entity entities[MAX_ENTITIES];
     int entityCount = 0;
 
+    // Player
     entities[entityCount++] = (Entity){
         .position = {100, 100}, .velocity = {0,0}, 
         .mass = 1.0f, .friction = 10.0f, .size = 30.0f, 
         .maxSpeed = 600.0f, .moveForce = 3000.0f,
-        .color = MAROON, .isActive = true, .state = STATE_RAW, .health = 100, .maxHealth = 100
+        .color = LIGHTGRAY, .isActive = true, .state = STATE_RAW, .health = 100, .maxHealth = 100
     };
     Entity* player = &entities[0];
     Player playerData = { .selectedElement = ELEM_EARTH, .mana = 100, .maxMana = 100 };
     
-    // Init Compendium
-    playerData.book.scrollY = 0; // Initialize Scroll
+    playerData.book.scrollY = 0;
     for(int i=0; i<SPELL_COUNT; i++) playerData.book.discovered[i] = false;
 
+    // Systems Init
+    GrassSystem grass; InitGrass(&grass);
     Inventory inventory = { 0 }; InitInventory(&inventory);
     ParticleSystem particleSystem; InitParticles(&particleSystem);
     Rectangle walls[WALL_COUNT] = { {200, 150, 400, 50}, {150, 150, 50, 300}, {600, 300, 50, 200} };
@@ -44,7 +46,6 @@ int main() {
         
         if (IsKeyPressed(KEY_C)) showCompendium = !showCompendium;
         
-        // --- CHEAT: UNLOCK ALL (F1) ---
         if (IsKeyPressed(KEY_F1)) {
             for(int i=0; i<SPELL_COUNT; i++) playerData.book.discovered[i] = true;
             playerData.book.notificationTimer = 3.0f;
@@ -53,6 +54,9 @@ int main() {
 
         if (!showCompendium) {
             bool isSelecting = IsKeyDown(KEY_TAB);
+            
+            UpdateGrass(&grass, entities, entityCount);
+            
             if (!isSelecting && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && entityCount < MAX_ENTITIES) {
                 if (playerData.selectedElement != ELEM_NONE) {
                     entities[entityCount++] = CreateRawElement(playerData.selectedElement, mouseWorld);
@@ -118,10 +122,12 @@ int main() {
         }
 
         BeginDrawing();
-            ClearBackground(RAYWHITE);
+            ClearBackground((Color){ 127, 125, 79, 255 });
             BeginMode2D(camera);
+                DrawGrass(&grass);
                 DrawGame(entities, entityCount, walls, WALL_COUNT);
                 DrawParticles(&particleSystem);
+                
                 int hovered = -1; 
                 for (int i = 1; i < entityCount; i++) {
                     if (entities[i].isActive && !entities[i].isHeld && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) { hovered = i; break; }

@@ -6,15 +6,9 @@
 const char* ElementNames[] = { "None", "Earth", "Water", "Fire", "Air" };
 
 typedef struct {
-    char name[32];
-    char desc[64];
-    Color col;
-    ElementType core;
-    char recipe[32];
-    char activation[32]; // NEW
+    char name[32]; char desc[64]; Color col; ElementType core; char recipe[32]; char activation[32];
 } SpellInfo;
 
-// --- FULL DICTIONARY ---
 SpellInfo GetSpellInfo(SpellBehavior b) {
     switch(b) {
         case SPELL_WALL: return (SpellInfo){"Wall Creator", "Blocks movement.", ORANGE, ELEM_EARTH, "Aux: 1 Earth", "On Impact"};
@@ -23,7 +17,6 @@ SpellInfo GetSpellInfo(SpellBehavior b) {
         case SPELL_LANDMINE: return (SpellInfo){"Landmine", "Invisible trap.", GRAY, ELEM_EARTH, "Aux: 1 Fire", "On Contact"};
         case SPELL_REWIND: return (SpellInfo){"Time Rewind", "Resets positions.", GOLD, ELEM_EARTH, "Aux: 1 Water+1 Air", "On Impact"};
         case SPELL_MAGNET: return (SpellInfo){"Magnetism", "Attracts Earth.", GRAY, ELEM_EARTH, "Aux: 1 Air+1 Fire", "Passive Field"};
-        
         case SPELL_MIDAS: return (SpellInfo){"Midas Touch", "Turns targets to gold.", GOLD, ELEM_FIRE, "Aux: 1 Earth", "On Impact"};
         case SPELL_BERSERK: return (SpellInfo){"Berserker", "Wild speed boost.", MAROON, ELEM_FIRE, "Aux: 2 Fire", "Self/Buff"};
         case SPELL_CLUSTER: return (SpellInfo){"Cluster Bomb", "Explosive shards.", ORANGE, ELEM_FIRE, "Aux: 1 Fire+1 Earth", "On Impact"};
@@ -31,7 +24,6 @@ SpellInfo GetSpellInfo(SpellBehavior b) {
         case SPELL_CHAIN_LIGHTNING: return (SpellInfo){"Chain Lightning", "Arcs damage.", YELLOW, ELEM_FIRE, "Aux: 1 Air", "On Impact"};
         case SPELL_CONFUSE: return (SpellInfo){"Confuse Ray", "Reverses controls.", PINK, ELEM_FIRE, "Aux: 1 Water+1 Air", "On Impact"};
         case SPELL_SHRINK: return (SpellInfo){"Shrink Ray", "Shrinks targets.", PURPLE, ELEM_FIRE, "Aux: 1 Air", "On Impact"};
-
         case SPELL_TSUNAMI: return (SpellInfo){"Tsunami", "Massive wave push.", BLUE, ELEM_WATER, "Aux: 2 Water", "Passive Wave"};
         case SPELL_FREEZE: return (SpellInfo){"Permafrost", "Freezes targets.", SKYBLUE, ELEM_WATER, "Aux: 1 Air", "On Impact"};
         case SPELL_VAMPIRISM: return (SpellInfo){"Blood Siphon", "Steals life.", RED, ELEM_WATER, "Aux: 1 Fire+1 Earth", "On Impact"};
@@ -40,15 +32,12 @@ SpellInfo GetSpellInfo(SpellBehavior b) {
         case SPELL_POISON: return (SpellInfo){"Toxic Cloud", "Poison area.", LIME, ELEM_WATER, "Aux: 1 Earth+1 Fire", "On Impact"};
         case SPELL_MIRROR: return (SpellInfo){"Doppelganger", "Clone self.", SKYBLUE, ELEM_WATER, "Aux: 1 Air+1 Fire", "On Cast"};
         case SPELL_HEAL: return (SpellInfo){"Healing Orb", "Restores health.", GREEN, ELEM_WATER, "Aux: Any", "On Contact"};
-
         case SPELL_WHIRLWIND: return (SpellInfo){"Whirlwind", "Pushes away.", LIGHTGRAY, ELEM_AIR, "Aux: 2 Air", "Passive Field"};
         case SPELL_TELEKINESIS: return (SpellInfo){"Gravity Well", "Crushing gravity.", LIGHTGRAY, ELEM_AIR, "Aux: 1 Air", "Passive Field"};
         case SPELL_PHANTOM: return (SpellInfo){"Phase Shift", "Passes walls.", PURPLE, ELEM_AIR, "Aux: 1 Water", "Passive"};
         case SPELL_SNIPER: return (SpellInfo){"Railgun", "Fast straight shot.", RED, ELEM_AIR, "Aux: 1 Fire+1 Earth", "Projectile"};
-        
         case SPELL_SLOW: return (SpellInfo){"Mud Trap", "Slows enemies.", BROWN, ELEM_EARTH, "Aux: 1 Water", "On Impact"};
         case SPELL_NECROMANCY: return (SpellInfo){"Necromancy", "Raises objects.", DARKGRAY, ELEM_EARTH, "Aux: 1 Water+1 Air", "On Impact"};
-
         default: return (SpellInfo){"Unknown", "???", GRAY, ELEM_NONE, "", ""};
     }
 }
@@ -76,50 +65,31 @@ void DrawHUD(Entity* player, Player* stats) {
 
 void DrawCompendium(Player* player) {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.9f));
-    int cols = 3; 
-    int cardW = 220; 
-    int cardH = 90; // Taller for extra text
-    int spacing = 20;
-    int startX = 60;
-    int headerHeight = 70;
-    
+    int cols = 3; int cardW = 220; int cardH = 90; int spacing = 20; int startX = 60; int headerHeight = 70;
     DrawText("- SPELL COMPENDIUM -", SCREEN_WIDTH/2 - 100, 30, 20, GOLD);
-    
-    float wheel = GetMouseWheelMove();
-    player->book.scrollY -= wheel * 30.0f; 
-    
-    int totalSpells = SPELL_COUNT - 1; 
-    int totalRows = (totalSpells + cols - 1) / cols;
-    int contentHeight = totalRows * (cardH + spacing) + spacing;
-    int viewHeight = SCREEN_HEIGHT - headerHeight;
-    
+    float wheel = GetMouseWheelMove(); player->book.scrollY -= wheel * 30.0f; 
+    int totalSpells = SPELL_COUNT - 1; int totalRows = (totalSpells + cols - 1) / cols;
+    int contentHeight = totalRows * (cardH + spacing) + spacing; int viewHeight = SCREEN_HEIGHT - headerHeight;
     if (player->book.scrollY < 0) player->book.scrollY = 0;
-    if (player->book.scrollY > contentHeight - viewHeight + 50) 
-        player->book.scrollY = contentHeight - viewHeight + 50; 
-    
+    if (player->book.scrollY > contentHeight - viewHeight + 50) player->book.scrollY = contentHeight - viewHeight + 50; 
     BeginScissorMode(0, headerHeight, SCREEN_WIDTH, SCREEN_HEIGHT - headerHeight);
-    
     int index = 0;
     for (int i = 1; i < SPELL_COUNT; i++) {
-        int col = index % cols;
-        int row = index / cols;
+        int col = index % cols; int row = index / cols;
         int x = startX + col * (cardW + spacing);
         int y = headerHeight + spacing + row * (cardH + spacing) - (int)player->book.scrollY;
-        
         if (y + cardH > headerHeight && y < SCREEN_HEIGHT) {
             Rectangle card = {x, y, cardW, cardH};
             DrawRectangleRec(card, Fade(DARKGRAY, 0.5f));
             DrawRectangleLinesEx(card, 1, GRAY);
-            
             if (player->book.discovered[i]) {
                 SpellInfo info = GetSpellInfo(i);
                 DrawRectangle(x+5, y+5, 20, 20, GetElementColor(info.core));
                 DrawRectangleLines(x+5, y+5, 20, 20, WHITE);
-                
                 DrawText(info.name, x+30, y+5, 10, WHITE);
                 DrawText(info.desc, x+5, y+30, 10, LIGHTGRAY);
                 DrawText(info.recipe, x+5, y+50, 10, YELLOW);
-                DrawText(TextFormat("Act: %s", info.activation), x+5, y+70, 10, GREEN); // Activation Method
+                DrawText(TextFormat("Act: %s", info.activation), x+5, y+70, 10, GREEN);
             } else {
                 DrawText("???", x+cardW/2-10, y+cardH/2-10, 20, GRAY);
                 DrawText("Locked", x+5, y+5, 10, DARKGRAY);
@@ -128,23 +98,17 @@ void DrawCompendium(Player* player) {
         index++;
     }
     EndScissorMode();
-    
-    // Draw Special for Teleport since it's not a standard SpellBehavior in enum order
-    // (Logic handled in main.c, but visual hint here)
     DrawText("NOTE: Earth + 2 Air = Teleport (Press T)", 20, SCREEN_HEIGHT-30, 20, PURPLE);
-    
     float scrollPercent = player->book.scrollY / (contentHeight - viewHeight + 50);
     if(scrollPercent > 1.0f) scrollPercent = 1.0f;
     DrawRectangle(SCREEN_WIDTH - 10, headerHeight + (scrollPercent * (viewHeight - 50)), 5, 50, LIGHTGRAY);
 }
 
 void DrawEntityTooltip(Entity* e, int x, int y) {
-    int width = 230;
-    int height = 200; 
+    int width = 230; int height = 200; 
     DrawRectangle(x + 20, y - 20, width, height, Fade(BLACK, 0.9f));
     DrawRectangleLines(x + 20, y - 20, width, height, WHITE);
     int tx = x+30; int ty = y-10;
-
     if (e->state == STATE_RAW) {
         DrawText("Raw Element", tx, ty, 10, LIGHTGRAY);
         DrawText(TextFormat("Core: %s", ElementNames[e->spellData.core]), tx, ty+20, 10, GetElementColor(e->spellData.core));
@@ -154,20 +118,16 @@ void DrawEntityTooltip(Entity* e, int x, int y) {
         DrawText(e->spellData.name, tx, ty, 10, YELLOW);
         DrawText(TextFormat("Core: %s", ElementNames[e->spellData.core]), tx, ty+20, 10, GetElementColor(e->spellData.core));
         DrawText(TextFormat("Aux: %d", e->spellData.auxCount), tx, ty+35, 10, GRAY);
-        
         if(e->spellData.behavior != SPELL_PROJECTILE) {
              SpellInfo info = GetSpellInfo(e->spellData.behavior); 
              DrawText(TextFormat("[!] %s", info.name), tx, ty+55, 10, info.col);
         }
-        // Special Teleport Check
         if(e->spellData.isTeleport) {
-             DrawText("[!] Teleport Enabled", tx, ty+70, 10, PURPLE);
-             DrawText("(Press T)", tx, ty+85, 10, LIGHTGRAY);
+             DrawText("[!] Teleport Enabled", tx, ty+70, 10, PURPLE); DrawText("(Press T)", tx, ty+85, 10, LIGHTGRAY);
         }
         else if(e->spellData.aiType != AI_LINEAR) {
             DrawText("[AI] Smart Movement", tx, ty+70, 10, WHITE);
         }
-        
         ty += 40;
         DrawText(TextFormat("Temp: %.1f C", e->spellData.temperature), tx, ty+60, 10, (e->spellData.temperature>50)?RED:BLUE);
     }
@@ -178,11 +138,8 @@ void DrawElementWheel(Player* player, Vector2 mousePos) {
     DrawCircleV(center, WHEEL_RADIUS, Fade(BLACK, 0.5f));
     Vector2 positions[4];
     ElementType types[4] = { ELEM_EARTH, ELEM_WATER, ELEM_FIRE, ELEM_AIR };
-    positions[0] = (Vector2){ center.x - 40, center.y }; 
-    positions[1] = (Vector2){ center.x + 40, center.y }; 
-    positions[2] = (Vector2){ center.x, center.y - 40 }; 
-    positions[3] = (Vector2){ center.x, center.y + 40 }; 
-    
+    positions[0] = (Vector2){ center.x - 40, center.y }; positions[1] = (Vector2){ center.x + 40, center.y }; 
+    positions[2] = (Vector2){ center.x, center.y - 40 }; positions[3] = (Vector2){ center.x, center.y + 40 }; 
     for(int i=0; i<4; i++) {
         Rectangle btn = { positions[i].x - ITEM_SIZE, positions[i].y - ITEM_SIZE, ITEM_SIZE*2, ITEM_SIZE*2 };
         bool hover = CheckCollisionPointRec(mousePos, btn);
@@ -204,5 +161,3 @@ void DrawInventory(Inventory* inv, int x, int y) {
         DrawText(TextFormat("%d", i+1), slot.x + 2, slot.y + 2, 10, GRAY);
     }
 }
-
-void DisplayEntityStatus(Entity *e, bool isVisible) {}

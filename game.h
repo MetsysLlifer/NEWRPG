@@ -8,13 +8,23 @@
 #include <stdlib.h> 
 #include <math.h>
 
+// --- CONSTANTS ---
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define WALL_COUNT 3
 #define INVENTORY_CAPACITY 5
 #define MAX_PARTICLES 1000 
+#define MAX_GRASS 4000 
 #define MAX_AUX 8 
 #define FUSION_RADIUS 150.0f 
+
+// --- OPTIMIZATION CONSTANTS ---
+// We divide the screen into 80x80 pixel buckets.
+// 800/80 = 10 cols, 600/80 = ~8 rows.
+#define GRID_CELL_SIZE 80
+#define GRID_COLS (SCREEN_WIDTH / GRID_CELL_SIZE + 1)
+#define GRID_ROWS (SCREEN_HEIGHT / GRID_CELL_SIZE + 1)
+#define MAX_ENTITIES_PER_CELL 32 // Max objects we expect in one small area
 
 #ifndef PI
 #define PI 3.14159265358979323846f
@@ -29,35 +39,12 @@ typedef enum { STATE_RAW, STATE_PROJECTILE, STATE_STATIC_WALL } EntityState;
 // --- FULL POWER LIST ---
 typedef enum {
     SPELL_PROJECTILE = 0, 
-    SPELL_WALL,             
-    SPELL_TELEKINESIS,      
-    SPELL_HEAL,             
-    SPELL_MIDAS,            
-    SPELL_VOID,             
-    SPELL_SLOW,             
-    SPELL_CHAIN_LIGHTNING,  
-    SPELL_FREEZE,           
-    SPELL_VAMPIRISM,        
-    SPELL_CLUSTER,          
-    SPELL_REFLECT,          
-    SPELL_PHANTOM,          
-    SPELL_CONFUSE,          
-    SPELL_BERSERK,          
-    SPELL_NECROMANCY,       
-    SPELL_TSUNAMI,          
-    SPELL_WHIRLWIND,        
-    SPELL_MAGNET,           
-    SPELL_PETRIFY,          
-    SPELL_MIRROR,           
-    SPELL_REWIND,           
-    SPELL_POISON,           
-    SPELL_SWARM,            
-    SPELL_SNIPER,           
-    SPELL_BOUNCE,           
-    SPELL_LANDMINE,         
-    SPELL_GROWTH,           
-    SPELL_SHRINK,           
-    SPELL_COUNT 
+    SPELL_WALL, SPELL_TELEKINESIS, SPELL_HEAL, SPELL_MIDAS, SPELL_VOID, SPELL_SLOW,
+    SPELL_CHAIN_LIGHTNING, SPELL_FREEZE, SPELL_VAMPIRISM, SPELL_CLUSTER, SPELL_REFLECT, 
+    SPELL_PHANTOM, SPELL_CONFUSE, SPELL_BERSERK, SPELL_NECROMANCY, SPELL_TSUNAMI, 
+    SPELL_WHIRLWIND, SPELL_MAGNET, SPELL_PETRIFY, SPELL_MIRROR, SPELL_REWIND, 
+    SPELL_POISON, SPELL_SWARM, SPELL_SNIPER, SPELL_BOUNCE, SPELL_LANDMINE, 
+    SPELL_GROWTH, SPELL_SHRINK, SPELL_COUNT 
 } SpellBehavior;
 
 typedef enum { AI_NONE = 0, AI_LINEAR, AI_HOMING, AI_PREDICT, AI_ORBIT, AI_FLEE, AI_SWARM, AI_ERRATIC } AiType;
@@ -91,11 +78,27 @@ typedef struct { Entity items[INVENTORY_CAPACITY]; int count; int selectedSlot; 
 typedef struct { Vector2 position; Vector2 velocity; Color color; float life; float size; bool active; } Particle;
 typedef struct { Particle particles[MAX_PARTICLES]; } ParticleSystem;
 
-// PROTOTYPES
+// --- GRASS ---
+typedef struct {
+    Vector2 position;
+    float angle;      
+    float targetAngle;
+    float stiffness;  
+    float height;
+    Color color;
+} Grass;
+
+typedef struct { Grass blades[MAX_GRASS]; } GrassSystem;
+
+// --- PROTOTYPES ---
 void InitParticles(ParticleSystem* ps);
 void UpdateParticles(ParticleSystem* ps);
 void DrawParticles(ParticleSystem* ps); 
 void SpawnExplosion(ParticleSystem* ps, Vector2 position, Color color);
+
+void InitGrass(GrassSystem* gs);
+void UpdateGrass(GrassSystem* gs, Entity* entities, int count);
+void DrawGrass(GrassSystem* gs);
 
 void InitInventory(Inventory* inv);
 bool AddItem(Inventory* inv, Entity item);
@@ -114,7 +117,6 @@ float GetSpellChunkSize(Entity* e, int index);
 
 void UpdateEntityPhysics(Entity* e, Vector2 inputDirection, Rectangle* walls, int wallCount);
 void UpdateEntityAI(Entity* e, Entity* entities, int count, Vector2 targetPos); 
-// Fixed Prototype: Takes Player* to handle Vampirism/Heal
 void ResolveEntityCollisions(Entity* entities, int* count, Entity* player, ParticleSystem* ps); 
 void ApplySpellFieldEffects(Entity* entities, int count, ParticleSystem* ps); 
 

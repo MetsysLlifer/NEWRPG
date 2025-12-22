@@ -1,6 +1,5 @@
 #include "game.h"
 
-// ... (CreateRawElement, Color, Physics functions same as before) ...
 Color GetElementColor(ElementType type) {
     switch (type) {
         case ELEM_EARTH: return ORANGE;      
@@ -29,6 +28,85 @@ Entity CreateRawElement(ElementType type, Vector2 pos) {
     return e;
 }
 
+int GetSpellChunkCount(Entity* e) {
+    if (e->state == STATE_RAW) return 3;
+    if (e->state == STATE_PROJECTILE) {
+        SpellBehavior b = e->spellData.behavior;
+        if (b == SPELL_SWARM || b == SPELL_CLUSTER || b == SPELL_POISON) return 20;
+        if (b == SPELL_TSUNAMI || b == SPELL_WALL) return 15;
+        if (b == SPELL_SNIPER || b == SPELL_VOID || b == SPELL_BOUNCE) return 1;
+        if (b == SPELL_MIRROR) return 2;
+        if (b == SPELL_NECROMANCY) return 5;
+        if (e->spellData.core == ELEM_FIRE) return 12;
+        if (e->spellData.core == ELEM_EARTH || b == SPELL_MIDAS) return 8;
+        if (e->spellData.core == ELEM_WATER) return 8;
+        if (e->spellData.core == ELEM_AIR) return 6;
+        return 6; 
+    }
+    return 1; 
+}
+
+Vector2 GetSpellChunkPos(Entity* e, int index, float time) {
+    Vector2 center = e->position;
+    SpellBehavior b = e->spellData.behavior;
+    if (e->state == STATE_RAW) {
+        float offX = sinf(index * 99.0f + time * 2.0f) * 8.0f;
+        float offY = cosf(index * 13.0f + time * 2.0f) * 8.0f;
+        return Vector2Add(center, (Vector2){offX, offY});
+    }
+    if (e->state == STATE_PROJECTILE) {
+        if (b == SPELL_TSUNAMI || b == SPELL_WALL) {
+            Vector2 forward = Vector2Normalize(e->velocity);
+            if(Vector2Length(e->velocity) < 1) forward = (Vector2){0,1};
+            Vector2 right = { -forward.y, forward.x };
+            float width = e->size * 3.0f; float step = width / 15.0f; float offset = (index - 7.5f) * step;
+            float curve = (offset*offset) / width; 
+            Vector2 pos = Vector2Add(center, Vector2Scale(right, offset));
+            pos = Vector2Subtract(pos, Vector2Scale(forward, curve * 2.0f)); 
+            return pos;
+        }
+        if (b == SPELL_SNIPER || b == SPELL_CHAIN_LIGHTNING) {
+            Vector2 trail = Vector2Scale(Vector2Normalize(e->velocity), -1.0f);
+            return Vector2Add(center, Vector2Scale(trail, index * 5.0f));
+        }
+        if (b == SPELL_SWARM || b == SPELL_POISON) {
+            float angle = index * 137.5f; float dist = index * 2.0f + sinf(time * 10.0f + index) * 5.0f;
+            return Vector2Add(center, (Vector2){ cosf(angle)*dist, sinf(angle)*dist });
+        }
+        if (b == SPELL_MIRROR) {
+            Vector2 off = { 20.0f, 0.0f }; if (index == 1) off.x = -20.0f;
+            float rot = atan2f(e->velocity.y, e->velocity.x);
+            Vector2 rotated = { off.x*cosf(rot) - off.y*sinf(rot), off.x*sinf(rot) + off.y*cosf(rot) };
+            return Vector2Add(center, rotated);
+        }
+        if (b == SPELL_REWIND) {
+            float t = fmodf(time + index * 0.1f, 1.0f); float dist = (1.0f - t) * 50.0f; 
+            float angle = index * (PI*2/6);
+            return Vector2Add(center, (Vector2){ cosf(angle)*dist, sinf(angle)*dist });
+        }
+        float angle = (time * (b == SPELL_WHIRLWIND ? 15.0f : 2.0f)) + (index * (PI*2 / GetSpellChunkCount(e)));
+        float dist = e->size + sinf(time*5.0f + index)*5.0f;
+        if (e->spellData.core == ELEM_FIRE && b == SPELL_PROJECTILE) { 
+             float jitterX = sinf(time * 20.0f + index) * 10.0f;
+             return Vector2Add(center, (Vector2){jitterX, -index * 2.0f});
+        }
+        return Vector2Add(center, (Vector2){ cosf(angle)*dist, sinf(angle)*dist });
+    }
+    return center;
+}
+
+float GetSpellChunkSize(Entity* e, int index) {
+    if (e->state == STATE_RAW) return e->size * 0.6f;
+    SpellBehavior b = e->spellData.behavior;
+    if (b == SPELL_VOID) return e->size * 1.5f;
+    if (b == SPELL_SNIPER) return 4.0f;
+    if (b == SPELL_SWARM) return 3.0f;
+    if (b == SPELL_POISON) return 5.0f;
+    if (b == SPELL_MIDAS) return 6.0f;
+    if (b == SPELL_NECROMANCY && index == 0) return 12.0f; 
+    return e->size * 0.5f;
+}
+
 void ApplyElementPhysics(Entity* e) {
     e->moveForce = 2000.0f;
     switch (e->spellData.core) {
@@ -38,71 +116,6 @@ void ApplyElementPhysics(Entity* e) {
         case ELEM_AIR: e->mass = 5.0f; e->maxSpeed = 900.0f; e->friction = 0.5f; break;
         default: e->mass = 20.0f; e->maxSpeed = 600.0f; e->friction = 5.0f; break;
     }
-}
-
-int GetSpellChunkCount(Entity* e) {
-    if (e->state == STATE_RAW) return 3;
-    if (e->state == STATE_PROJECTILE) {
-        if (e->spellData.core == ELEM_EARTH) return 8;
-        if (e->spellData.core == ELEM_FIRE) return 12;
-        if (e->spellData.core == ELEM_WATER) return 5; // Reduced for better droplets
-        if (e->spellData.core == ELEM_AIR) return 6;
-        if (e->spellData.behavior == SPELL_MIDAS) return 8;
-        if (e->spellData.behavior == SPELL_VOID) return 1; 
-    }
-    return 1; 
-}
-
-Vector2 GetSpellChunkPos(Entity* e, int index, float time) {
-    Vector2 center = e->position;
-    
-    if (e->state == STATE_RAW) {
-        // Wobble for raw elements
-        float offX = sinf(index * 99.0f + time * 2.0f) * 8.0f;
-        float offY = cosf(index * 13.0f + time * 2.0f) * 8.0f;
-        return Vector2Add(center, (Vector2){offX, offY});
-    }
-    
-    if (e->state == STATE_PROJECTILE) {
-        if (e->spellData.core == ELEM_EARTH || e->spellData.behavior == SPELL_MIDAS) {
-            float angle = (time * 1.0f) + (index * (PI*2/8));
-            float dist = e->size * 0.8f + sinf(index * 5.0f) * 5.0f;
-            return Vector2Add(center, (Vector2){cosf(angle)*dist, sinf(angle)*dist});
-        }
-        if (e->spellData.core == ELEM_FIRE) {
-            float jitterX = sinf(time * 20.0f + index) * 15.0f;
-            float jitterY = cosf(time * 20.0f + index * 2) * 15.0f;
-            return Vector2Add(center, (Vector2){jitterX, jitterY});
-        }
-        if (e->spellData.core == ELEM_WATER) {
-            // Linear trail
-            Vector2 trail = Vector2Scale(Vector2Normalize(e->velocity), -1.0f);
-            if(Vector2Length(e->velocity) < 1) trail = (Vector2){0,1};
-            float dist = index * 10.0f;
-            // Sine wave tail
-            float wave = sinf(time * 15.0f + index) * 5.0f;
-            Vector2 perp = { -trail.y, trail.x };
-            Vector2 pos = Vector2Add(center, Vector2Scale(trail, dist));
-            return Vector2Add(pos, Vector2Scale(perp, wave));
-        }
-        if (e->spellData.core == ELEM_AIR) {
-            float angle = time * 8.0f + (index * (PI*2/6));
-            Vector2 orb = { cosf(angle) * e->size, sinf(angle) * e->size };
-            return Vector2Add(center, orb);
-        }
-    }
-    return center;
-}
-
-float GetSpellChunkSize(Entity* e, int index) {
-    if (e->state == STATE_RAW) return e->size * 0.6f;
-    if (e->state == STATE_PROJECTILE) {
-        if (e->spellData.core == ELEM_EARTH) return e->size * 0.5f;
-        if (e->spellData.core == ELEM_FIRE) return 6.0f;
-        if (e->spellData.core == ELEM_WATER) return e->size * (1.0f - (float)index/5.0f); // Taper off
-        if (e->spellData.core == ELEM_AIR) return 4.0f;
-    }
-    return e->size;
 }
 
 void RecalculateStats(Spell* s) {
