@@ -11,7 +11,7 @@ void CleanupEntities(Entity* entities, int* count) {
 }
 
 int main() {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Granular Magic Physics");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hybrid Magic - Scrolling Compendium");
     SetTargetFPS(60); 
 
     Entity entities[MAX_ENTITIES];
@@ -26,6 +26,8 @@ int main() {
     Entity* player = &entities[0];
     Player playerData = { .selectedElement = ELEM_EARTH, .mana = 100, .maxMana = 100 };
     
+    // Init Compendium
+    playerData.book.scrollY = 0; // Initialize Scroll
     for(int i=0; i<SPELL_COUNT; i++) playerData.book.discovered[i] = false;
 
     Inventory inventory = { 0 }; InitInventory(&inventory);
@@ -41,6 +43,13 @@ int main() {
         camera.target = player->position;
         
         if (IsKeyPressed(KEY_C)) showCompendium = !showCompendium;
+        
+        // --- CHEAT: UNLOCK ALL (F1) ---
+        if (IsKeyPressed(KEY_F1)) {
+            for(int i=0; i<SPELL_COUNT; i++) playerData.book.discovered[i] = true;
+            playerData.book.notificationTimer = 3.0f;
+            sprintf(playerData.book.notificationText, "CHEAT: ALL UNLOCKED!");
+        }
 
         if (!showCompendium) {
             bool isSelecting = IsKeyDown(KEY_TAB);
@@ -103,7 +112,7 @@ int main() {
                 }
             }
             ApplySpellFieldEffects(entities, entityCount, &particleSystem);
-            ResolveEntityCollisions(entities, entityCount, player, &particleSystem);
+            ResolveEntityCollisions(entities, &entityCount, player, &particleSystem);
             UpdateParticles(&particleSystem);
             CleanupEntities(entities, &entityCount);
         }

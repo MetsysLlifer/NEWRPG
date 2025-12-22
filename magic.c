@@ -1,5 +1,6 @@
 #include "game.h"
 
+// ... (CreateRawElement, Color, Physics functions same as before) ...
 Color GetElementColor(ElementType type) {
     switch (type) {
         case ELEM_EARTH: return ORANGE;      
@@ -20,61 +21,31 @@ Entity CreateRawElement(ElementType type, Vector2 pos) {
     e.maxSpeed = 0.0f; e.moveForce = 0.0f;
     e.spellData.core = type;
     e.spellData.auxCount = 0;
-    
     if(type == ELEM_FIRE) { e.spellData.temperature = 100.0; e.spellData.dryness = 1.0; }
     else if(type == ELEM_WATER) { e.spellData.temperature = 20.0; e.spellData.dryness = 0.0; }
     else if(type == ELEM_EARTH) { e.spellData.temperature = 50.0; e.spellData.dryness = 1.0; }
     else if(type == ELEM_AIR) { e.spellData.temperature = 40.0; e.spellData.dryness = 0.5; }
     e.spellData.intensity = 0.5;
-    
     return e;
 }
 
-// --- FIXED FUNCTION ---
 void ApplyElementPhysics(Entity* e) {
-    e->moveForce = 2000.0f; // Default steering force
-    
+    e->moveForce = 2000.0f;
     switch (e->spellData.core) {
-        case ELEM_FIRE:
-            e->mass = 1.0f; 
-            e->maxSpeed = 1000.0f; 
-            e->friction = 1.0f; 
-            break;
-            
-        case ELEM_EARTH:
-            e->mass = 50.0f; 
-            e->maxSpeed = 500.0f; 
-            e->friction = 10.0f; 
-            break;
-            
-        case ELEM_WATER:
-            e->mass = 10.0f; 
-            e->maxSpeed = 700.0f; 
-            e->friction = 2.0f; 
-            break;
-            
-        case ELEM_AIR:
-            e->mass = 5.0f; 
-            e->maxSpeed = 900.0f; 
-            e->friction = 0.5f; 
-            break;
-            
-        default:
-            // Fallback for NONE or other types
-            e->mass = 20.0f; 
-            e->maxSpeed = 600.0f; 
-            e->friction = 5.0f;
-            break;
+        case ELEM_FIRE: e->mass = 1.0f; e->maxSpeed = 1000.0f; e->friction = 1.0f; break;
+        case ELEM_EARTH: e->mass = 50.0f; e->maxSpeed = 500.0f; e->friction = 10.0f; break;
+        case ELEM_WATER: e->mass = 10.0f; e->maxSpeed = 700.0f; e->friction = 2.0f; break;
+        case ELEM_AIR: e->mass = 5.0f; e->maxSpeed = 900.0f; e->friction = 0.5f; break;
+        default: e->mass = 20.0f; e->maxSpeed = 600.0f; e->friction = 5.0f; break;
     }
 }
 
-// --- SHARED GEOMETRY (Granular Physics) ---
 int GetSpellChunkCount(Entity* e) {
     if (e->state == STATE_RAW) return 3;
     if (e->state == STATE_PROJECTILE) {
         if (e->spellData.core == ELEM_EARTH) return 8;
         if (e->spellData.core == ELEM_FIRE) return 12;
-        if (e->spellData.core == ELEM_WATER) return 8;
+        if (e->spellData.core == ELEM_WATER) return 5; // Reduced for better droplets
         if (e->spellData.core == ELEM_AIR) return 6;
         if (e->spellData.behavior == SPELL_MIDAS) return 8;
         if (e->spellData.behavior == SPELL_VOID) return 1; 
@@ -86,8 +57,9 @@ Vector2 GetSpellChunkPos(Entity* e, int index, float time) {
     Vector2 center = e->position;
     
     if (e->state == STATE_RAW) {
-        float offX = sinf(index * 99.0f) * 8.0f;
-        float offY = cosf(index * 13.0f) * 8.0f;
+        // Wobble for raw elements
+        float offX = sinf(index * 99.0f + time * 2.0f) * 8.0f;
+        float offY = cosf(index * 13.0f + time * 2.0f) * 8.0f;
         return Vector2Add(center, (Vector2){offX, offY});
     }
     
@@ -103,10 +75,12 @@ Vector2 GetSpellChunkPos(Entity* e, int index, float time) {
             return Vector2Add(center, (Vector2){jitterX, jitterY});
         }
         if (e->spellData.core == ELEM_WATER) {
+            // Linear trail
             Vector2 trail = Vector2Scale(Vector2Normalize(e->velocity), -1.0f);
             if(Vector2Length(e->velocity) < 1) trail = (Vector2){0,1};
-            float dist = index * 6.0f;
-            float wave = sinf(time * 15.0f + index) * 6.0f;
+            float dist = index * 10.0f;
+            // Sine wave tail
+            float wave = sinf(time * 15.0f + index) * 5.0f;
             Vector2 perp = { -trail.y, trail.x };
             Vector2 pos = Vector2Add(center, Vector2Scale(trail, dist));
             return Vector2Add(pos, Vector2Scale(perp, wave));
@@ -125,7 +99,7 @@ float GetSpellChunkSize(Entity* e, int index) {
     if (e->state == STATE_PROJECTILE) {
         if (e->spellData.core == ELEM_EARTH) return e->size * 0.5f;
         if (e->spellData.core == ELEM_FIRE) return 6.0f;
-        if (e->spellData.core == ELEM_WATER) return e->size * (1.0f - (float)index/8.0f);
+        if (e->spellData.core == ELEM_WATER) return e->size * (1.0f - (float)index/5.0f); // Taper off
         if (e->spellData.core == ELEM_AIR) return 4.0f;
     }
     return e->size;

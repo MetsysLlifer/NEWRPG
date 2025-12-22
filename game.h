@@ -26,12 +26,38 @@ typedef char Name[MAX_NAME];
 typedef enum { ELEM_NONE = 0, ELEM_EARTH, ELEM_WATER, ELEM_FIRE, ELEM_AIR } ElementType;
 typedef enum { STATE_RAW, STATE_PROJECTILE, STATE_STATIC_WALL } EntityState;
 
+// --- FULL POWER LIST ---
 typedef enum {
-    SPELL_PROJECTILE = 0, SPELL_WALL, SPELL_TELEKINESIS, SPELL_HEAL, SPELL_MIDAS, SPELL_VOID, SPELL_SLOW,
-    SPELL_CHAIN_LIGHTNING, SPELL_FREEZE, SPELL_VAMPIRISM, SPELL_CLUSTER, SPELL_REFLECT, SPELL_PHANTOM,
-    SPELL_CONFUSE, SPELL_BERSERK, SPELL_NECROMANCY, SPELL_TSUNAMI, SPELL_WHIRLWIND, SPELL_MAGNET,
-    SPELL_PETRIFY, SPELL_MIRROR, SPELL_REWIND, SPELL_POISON, SPELL_SWARM, SPELL_SNIPER, SPELL_BOUNCE,
-    SPELL_LANDMINE, SPELL_GROWTH, SPELL_SHRINK, SPELL_COUNT 
+    SPELL_PROJECTILE = 0, 
+    SPELL_WALL,             
+    SPELL_TELEKINESIS,      
+    SPELL_HEAL,             
+    SPELL_MIDAS,            
+    SPELL_VOID,             
+    SPELL_SLOW,             
+    SPELL_CHAIN_LIGHTNING,  
+    SPELL_FREEZE,           
+    SPELL_VAMPIRISM,        
+    SPELL_CLUSTER,          
+    SPELL_REFLECT,          
+    SPELL_PHANTOM,          
+    SPELL_CONFUSE,          
+    SPELL_BERSERK,          
+    SPELL_NECROMANCY,       
+    SPELL_TSUNAMI,          
+    SPELL_WHIRLWIND,        
+    SPELL_MAGNET,           
+    SPELL_PETRIFY,          
+    SPELL_MIRROR,           
+    SPELL_REWIND,           
+    SPELL_POISON,           
+    SPELL_SWARM,            
+    SPELL_SNIPER,           
+    SPELL_BOUNCE,           
+    SPELL_LANDMINE,         
+    SPELL_GROWTH,           
+    SPELL_SHRINK,           
+    SPELL_COUNT 
 } SpellBehavior;
 
 typedef enum { AI_NONE = 0, AI_LINEAR, AI_HOMING, AI_PREDICT, AI_ORBIT, AI_FLEE, AI_SWARM, AI_ERRATIC } AiType;
@@ -51,7 +77,10 @@ typedef struct {
 } Entity;
 
 typedef struct {
-    bool discovered[SPELL_COUNT]; float notificationTimer; char notificationText[64];    
+    bool discovered[SPELL_COUNT]; 
+    float notificationTimer;      
+    char notificationText[64];
+    float scrollY; 
 } Compendium;
 
 typedef struct {
@@ -78,14 +107,15 @@ Entity CreateRawElement(ElementType type, Vector2 pos);
 void PerformSpatialFusion(Entity* entities, int count, int coreIndex, ParticleSystem* ps, Player* player);
 Spell FuseSpellData(Spell A, Spell B); 
 
-// Shared Geometry for Granular Physics
+// Shared Geometry
 int GetSpellChunkCount(Entity* e);
 Vector2 GetSpellChunkPos(Entity* e, int index, float time);
 float GetSpellChunkSize(Entity* e, int index);
 
 void UpdateEntityPhysics(Entity* e, Vector2 inputDirection, Rectangle* walls, int wallCount);
 void UpdateEntityAI(Entity* e, Entity* entities, int count, Vector2 targetPos); 
-void ResolveEntityCollisions(Entity* entities, int count, Entity* player, ParticleSystem* ps); 
+// Fixed Prototype: Takes Player* to handle Vampirism/Heal
+void ResolveEntityCollisions(Entity* entities, int* count, Entity* player, ParticleSystem* ps); 
 void ApplySpellFieldEffects(Entity* entities, int count, ParticleSystem* ps); 
 
 void DrawGame(Entity* entities, int count, Rectangle* walls, int wallCount);
