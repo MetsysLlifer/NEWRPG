@@ -34,3 +34,4 @@ This will create an executable that you can run.
 ## Contributing
 
 Contributions are welcome! If you have ideas for new spells, features, or improvements, feel free to open an issue or submit a pull request.
+
