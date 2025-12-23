@@ -2,27 +2,33 @@
 
 **Version 2.1**
 
-Welcome to NEWRPG, a top-down 2D sandbox RPG where your creativity is your most powerful weapon. Dive into a dynamic, physics-based world, and craft powerful, custom spells to shape your environment and vanquish your foes.
+Welcome to NEWRPG, a top-down 2D physics-based RPG featuring dynamic entity interactions and emergent gameplay.
+
+## ⚠️ Major Update Notice
+
+**This version represents a complete reimagining of the game.** Due to significant limitations in the old game's physics system and spell mechanics, we've rebuilt the project from the ground up with a new world and streamlined gameplay architecture. The previous magic system has been removed to focus on core physics interactions and a cleaner, more maintainable codebase.
 
 ## Inspiration
 
 NEWRPG draws its core inspiration from two innovative games:
 
 *   **Noita:** The deep, emergent physics and chemistry simulation that allows for creative problem-solving and gloriously chaotic fun.
-*   **CodeSpells:** The idea of writing your own magic and seeing it come to life is a central theme. We aim to give players the tools to design and cast their own unique spells.
+*   **CodeSpells:** The concept of programmable interactions and seeing your creations come to life.
 
 ## About the Game
 
-In NEWRPG, you take on the role of a powerful mage venturing through a dangerous and interactive world. Forget finding pre-made spells in dusty tomes. Here, you will craft your own magical abilities from scratch by combining different elements, principles, and modifiers.
+In NEWRPG v2.1, you explore a dynamic, physics-driven world where every entity responds realistically to forces and collisions. The focus is on fundamental physics simulation, providing a solid foundation for future gameplay systems.
 
-The world is your magical sandbox. The physics engine allows for complex and often unpredictable interactions between your spells, the environment, and the creatures that inhabit it. Will you conjure a rain of fire, sculpt the terrain to your advantage, or create a chain reaction that accidentally destroys a whole cavern? The choice is yours.
+The world is an interactive sandbox. The custom physics engine allows for emergent behaviors through entity interactions, environmental dynamics, and realistic collision resolution.
 
 ## Core Features
 
-*   **Physics-Based World (`physics.c`):** Objects interact with the world in emergent ways, governed by a custom physics engine.
-*   **Custom Particle Engine (`particles.c`):** A vibrant particle engine brings effects to life with beautiful and chaotic visuals.
-*   **Inventory System (`inventory.c`):** Manage your collection of crafted artifacts and other essential items.
-*   **Simple 2D Graphics & UI (`graphics.c`, `ui.c`):** A clean graphics engine renders the world, while a simple UI keeps you informed.
+*   **Robust Physics Engine (`physics.c`):** Entity movement, collision detection, and wall constraints with realistic friction and velocity handling.
+*   **Dynamic Grass System (`graphics.c`):** Environmental grass that responds to entity movement with realistic bending and recovery.
+*   **Custom Particle Engine (`particles.c`):** Visual effects system for explosions and other dynamic events.
+*   **Inventory System (`inventory.c`):** Pick up, store, and drop items with keyboard-driven management.
+*   **Simple 2D Graphics & UI (`graphics.c`, `ui.c`):** Clean rendering with health/mana display and inventory visualization.
+*   **Entity Pool System:** Support for different entity states including raw entities, projectiles, static walls, and liquid pools.
 
 ## Technical Stack
 
@@ -81,5 +87,9 @@ Here is a brief overview of the key source files:
 
 ## Contributing
 
-Contributions are welcome! If you have ideas for new spells, features, or improvements, feel free to open an issue or submit a pull request.
+Contributions are welcome! This is a learning project focused on physics simulation and game architecture. Feel free to open issues or submit pull requests for improvements to the physics engine, rendering optimizations, or new gameplay features.
+
+## Version History
+
+**v2.1** - Complete rebuild with simplified physics-focused architecture. Removed legacy magic system due to design limitations. Improved performance and maintainability.
 

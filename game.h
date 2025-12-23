@@ -9,7 +9,7 @@
 // --- WORLD SETTINGS ---
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
-#define CELL_SIZE 8 
+#define CELL_SIZE 4
 #define GRID_W (SCREEN_WIDTH / CELL_SIZE)
 #define GRID_H (SCREEN_HEIGHT / CELL_SIZE)
 
