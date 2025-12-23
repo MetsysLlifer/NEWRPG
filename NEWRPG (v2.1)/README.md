@@ -19,9 +19,10 @@ The world is your magical sandbox. The physics engine allows for complex and oft
 
 ## Core Features
 
-*   **Physics-Based World (`physics.c`):** Objects interact with the world in emergent ways, governed by a custom physics engine.
-*   **Custom Particle Engine (`particles.c`):** A vibrant particle engine brings effects to life with beautiful and chaotic visuals.
-*   **Inventory System (`inventory.c`):** Manage your collection of crafted artifacts and other essential items.
+*   **Dynamic Spell Crafting (`magic.c`):** A robust system for designing and creating your own unique spells. Combine elemental properties, behaviors, and modifiers to build your arsenal.
+*   **Physics-Based Magic & World (`physics.c`):** Spells and objects interact with the world in emergent ways, governed by a custom physics engine.
+*   **Custom Particle Engine (`particles.c`):** A vibrant particle engine brings your spells to life with beautiful and chaotic visual effects.
+*   **Inventory System (`inventory.c`):** Manage your collection of magical ingredients, crafted artifacts, and other essential items.
 *   **Simple 2D Graphics & UI (`graphics.c`, `ui.c`):** A clean graphics engine renders the world, while a simple UI keeps you informed.
 
 ## Technical Stack
@@ -73,7 +74,8 @@ Here is a brief overview of the key source files:
 | `main.c`      | The main entry point and game loop.                       |
 | `game.h`      | Main header with core data structures and declarations.   |
 | `graphics.c`  | Handles all rendering and graphics-related logic.         |
-| `physics.c`   | Manages the physics simulation for entities.   |
+| `physics.c`   | Manages the physics simulation for entities and spells.   |
+| `magic.c`     | Contains the logic for the spell crafting system.         |
 | `particles.c` | Implements the particle engine for visual effects.        |
 | `inventory.c` | Manages the player's inventory.                           |
 | `ui.c`        | Responsible for drawing UI elements to the screen.        |
