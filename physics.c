@@ -18,6 +18,35 @@ Color GetBlockColor(BlockType t) {
     }
 }
 
+// --- PHYSICS PROPERTIES ---
+
+bool IsSolid(BlockType t) {
+    return (t == BLOCK_STONE || t == BLOCK_WOOD || t == BLOCK_DIRT || t == BLOCK_SAND);
+}
+
+// Higher number = Heavier/Denser
+// Heavier things displace lighter things
+int GetDensity(BlockType t) {
+    switch(t) {
+        case BLOCK_STONE: 
+        case BLOCK_DIRT:
+        case BLOCK_SAND:
+        case BLOCK_WOOD: return 1000; // Immovable Solids
+        
+        case BLOCK_LAVA: return 100;  // Heavy Liquid
+        case BLOCK_WATER: return 50;  // Light Liquid
+        
+        case BLOCK_SMOKE: return 5;   // Gas
+        case BLOCK_FIRE: return 1;    // Plasma/Gas
+        case BLOCK_AIR: return 0;     // Vacuum
+        default: return 0;
+    }
+}
+
+bool IsValid(int x, int y) {
+    return (x >= 0 && x < GRID_W && y >= 0 && y < GRID_H);
+}
+
 void InitWorld() {
     for(int y=0; y<GRID_H; y++) {
         for(int x=0; x<GRID_W; x++) {
@@ -25,15 +54,6 @@ void InitWorld() {
             grid[y][x].active = false;
         }
     }
-}
-
-// Defines what stops the player
-bool IsSolid(BlockType t) {
-    return (t == BLOCK_STONE || t == BLOCK_WOOD || t == BLOCK_DIRT || t == BLOCK_SAND);
-}
-
-bool IsValid(int x, int y) {
-    return (x >= 0 && x < GRID_W && y >= 0 && y < GRID_H);
 }
 
 void EditWorld(int x, int y, BlockType type, int radius) {
@@ -44,7 +64,16 @@ void EditWorld(int x, int y, BlockType type, int radius) {
                 if (type == BLOCK_AIR || !IsSolid(grid[ny][nx].type)) {
                     grid[ny][nx].type = type;
                     grid[ny][nx].color = GetBlockColor(type);
-                    grid[ny][nx].life = (type == BLOCK_FIRE) ? 100 : 0; 
+                    
+                    // --- SPREAD/LIFE INITIALIZATION ---
+                    // Water spreads moderately (50 steps)
+                    // Lava spreads shortly (20 steps)
+                    // Fire burns briefly (100 ticks)
+                    if (type == BLOCK_WATER) grid[ny][nx].life = 50; 
+                    else if (type == BLOCK_LAVA) grid[ny][nx].life = 20;
+                    else if (type == BLOCK_FIRE) grid[ny][nx].life = 100;
+                    else grid[ny][nx].life = 0;
+                    
                     grid[ny][nx].active = true; 
                 }
             }
@@ -69,29 +98,53 @@ void UpdateWorld() {
 
             int dx = 0, dy = 0; 
 
-            // --- FLUIDS (Diffusion) ---
-            // Water/Lava spread randomly to neighbors to simulate a puddle
+            // --- FLUIDS (Water/Lava) ---
             if (c.type == BLOCK_WATER || c.type == BLOCK_LAVA) {
-                // Pick a random direction: 0:U, 1:R, 2:D, 3:L
+                
+                // 1. SPREAD LIMIT (Stamina)
+                // If life runs out, it settles (becomes a static puddle)
+                if (c.life <= 0) continue; 
+
+                // 2. VISCOSITY (Speed)
+                // Water moves often (1 in 4 skip)
+                // Lava moves rarely (10 in 11 skip) -> Viscous/Thick
+                int skipChance = (c.type == BLOCK_LAVA) ? 10 : 2;
+                if (GetRandomValue(0, skipChance) != 0) continue;
+
+                // 3. DIRECTION
                 int dir = GetRandomValue(0, 3);
                 if (dir == 0) dy = -1;
                 else if (dir == 1) dx = 1;
                 else if (dir == 2) dy = 1;
                 else if (dir == 3) dx = -1;
 
-                // Move if empty
-                if (IsValid(x+dx, y+dy) && grid[y+dy][x+dx].type == BLOCK_AIR) {
-                    // Check nextGrid too to prevent overwriting
-                    if (nextGrid[y+dy][x+dx].type == BLOCK_AIR) {
-                        nextGrid[y+dy][x+dx] = c;
-                        nextGrid[y][x].type = BLOCK_AIR;
+                if (IsValid(x+dx, y+dy)) {
+                    BlockType targetType = grid[y+dy][x+dx].type;
+                    int myDensity = GetDensity(c.type);
+                    int targetDensity = GetDensity(targetType);
+
+                    // MOVE: If target is Air
+                    // SWAP: If target is lighter fluid (Density Check)
+                    // e.g., Lava (100) will push Water (50)
+                    if (targetType == BLOCK_AIR || (targetType != BLOCK_AIR && !IsSolid(targetType) && myDensity > targetDensity)) {
+                        
+                        // Check NextGrid to avoid race conditions
+                        if (nextGrid[y+dy][x+dx].type == targetType) {
+                            
+                            // Move Self
+                            nextGrid[y+dy][x+dx] = c;
+                            nextGrid[y+dy][x+dx].life--; // Reduce spread stamina
+                            
+                            // Displace Target (Swap)
+                            nextGrid[y][x] = grid[y+dy][x+dx]; 
+                        }
                     }
                 }
             }
 
             // --- FIRE (Spreading) ---
             else if (c.type == BLOCK_FIRE) {
-                // Spread to Wood neighbors in all directions
+                // Spread to Wood
                 for(int i=-1; i<=1; i++) {
                     for(int j=-1; j<=1; j++) {
                         if(IsValid(x+i, y+j) && grid[y+j][x+i].type == BLOCK_WOOD) {
@@ -112,20 +165,22 @@ void UpdateWorld() {
                 }
             }
 
-            // --- SMOKE (Dissipate) ---
+            // --- SMOKE ---
             else if (c.type == BLOCK_SMOKE) {
-                int dir = GetRandomValue(0, 3); // Waft around
-                if (dir == 0) dy = -1; else if (dir == 1) dx = 1; 
-                else if (dir == 2) dy = 1; else if (dir == 3) dx = -1;
-
-                if (IsValid(x+dx, y+dy) && grid[y+dy][x+dx].type == BLOCK_AIR) {
-                     if (nextGrid[y+dy][x+dx].type == BLOCK_AIR) {
-                        nextGrid[y+dy][x+dx] = c;
-                        nextGrid[y][x].type = BLOCK_AIR;
-                     }
+                if (GetRandomValue(0, 3) == 0) { // Waft randomly
+                    int dir = GetRandomValue(0, 3);
+                    if (dir == 0) dy = -1; else if (dir == 1) dx = 1; 
+                    else if (dir == 2) dy = 1; else if (dir == 3) dx = -1;
+                    
+                    if (IsValid(x+dx, y+dy) && grid[y+dy][x+dx].type == BLOCK_AIR) {
+                         if (nextGrid[y+dy][x+dx].type == BLOCK_AIR) {
+                            nextGrid[y+dy][x+dx] = c;
+                            nextGrid[y][x].type = BLOCK_AIR;
+                         }
+                    }
                 }
-                nextGrid[y+dy][x+dx].life--;
-                if(nextGrid[y+dy][x+dx].life <= 0) nextGrid[y+dy][x+dx].type = BLOCK_AIR;
+                nextGrid[y][x].life--;
+                if(nextGrid[y][x].life <= 0) nextGrid[y][x].type = BLOCK_AIR;
             }
         }
     }
@@ -138,7 +193,6 @@ void UpdateWorld() {
     }
 }
 
-// --- RENDER ---
 void DrawWorld() {
     for(int y=0; y<GRID_H; y++) {
         for(int x=0; x<GRID_W; x++) {
@@ -178,6 +232,8 @@ void UpdatePlayer(Player* p, float dt) {
         int gx = (nextPos.x + cornersX[i]*p->size) / CELL_SIZE;
         int gy = (nextPos.y + cornersY[i]*p->size) / CELL_SIZE;
         
+        // Player only collides with Solids (Stone/Sand/Wood)
+        // Player WALKS THROUGH Water/Lava (but maybe we can add drag later)
         if (IsValid(gx, gy) && IsSolid(grid[gy][gx].type)) collision = true;
     }
     

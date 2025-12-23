@@ -16,18 +16,18 @@
 // --- BLOCK TYPES ---
 typedef enum {
     BLOCK_AIR = 0,
-    BLOCK_STONE, // Wall (Indestructible-ish)
-    BLOCK_DIRT,  // Wall
-    BLOCK_SAND,  // Wall (But looks grainy)
-    BLOCK_WATER, // Floor (Spreads)
-    BLOCK_LAVA,  // Floor (Spreads + Damage)
-    BLOCK_WOOD,  // Wall (Flammable)
-    BLOCK_FIRE,  // Emitter
-    BLOCK_SMOKE, // Visual
+    BLOCK_STONE, // Solid Wall
+    BLOCK_DIRT,  // Solid Wall
+    BLOCK_SAND,  // Solid Wall (Grainy)
+    BLOCK_WATER, // Liquid (Low Density)
+    BLOCK_LAVA,  // Liquid (High Density)
+    BLOCK_WOOD,  // Solid Fuel
+    BLOCK_FIRE,  // Gas (Hot)
+    BLOCK_SMOKE, // Gas (Rising)
     BLOCK_COUNT
 } BlockType;
 
-// --- PLAYER ---
+// --- ENTITIES ---
 typedef struct {
     Vector2 position; 
     Vector2 velocity;
@@ -44,14 +44,14 @@ typedef struct {
 // --- GRID SYSTEM ---
 typedef struct {
     BlockType type;
-    int life;       // For decay (Fire/Smoke)
-    bool active;    // Optimization
-    Color color;    // Persistent noise color
+    int life;       // Acts as "Stamina" for liquids (spread distance) or "Health" for fire
+    bool active;    // Optimization flag
+    Color color;    // Persistent texture color
 } Cell;
 
 // --- PROTOTYPES ---
 void InitWorld();
-void UpdateWorld(); // Cellular Automata (Top-Down Logic)
+void UpdateWorld(); // Cellular Automata Logic
 void DrawWorld();
 
 void InitPlayer(Player* p);
@@ -60,7 +60,8 @@ void DrawPlayer(Player* p);
 
 // Interaction
 void EditWorld(int x, int y, BlockType type, int radius);
-bool IsSolid(BlockType t); // True if it blocks player movement
+bool IsSolid(BlockType t);
+int GetDensity(BlockType t); // New Density Check
 
 // UI
 void DrawHUD(Player* p, Inventory* inv);
