@@ -158,7 +158,7 @@ int main() {
             
             if (showCompendium) DrawCompendium(&playerData);
 
-            DrawFPS(10, 10);
+            DrawFPS(SCREEN_WIDTH - (SCREEN_HEIGHT / 4), 10);
         EndDrawing();
     }
     CloseWindow();

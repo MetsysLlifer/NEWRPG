@@ -39,17 +39,14 @@ void UpdateGrass(GrassSystem* gs, Entity* entities, int count) {
     for(int i=0; i<count; i++) {
         if(!entities[i].isActive) continue;
 
-        // Determine bounding box
         int minX = (int)((entities[i].position.x - entities[i].size - 30) / GRID_CELL_SIZE);
         int maxX = (int)((entities[i].position.x + entities[i].size + 30) / GRID_CELL_SIZE);
         int minY = (int)((entities[i].position.y - entities[i].size - 30) / GRID_CELL_SIZE);
         int maxY = (int)((entities[i].position.y + entities[i].size + 30) / GRID_CELL_SIZE);
 
-        // Clamp
         if (minX < 0) minX = 0; if (maxX >= GRID_COLS) maxX = GRID_COLS - 1;
         if (minY < 0) minY = 0; if (maxY >= GRID_ROWS) maxY = GRID_ROWS - 1;
 
-        // Add to cells
         for (int y = minY; y <= maxY; y++) {
             for (int x = minX; x <= maxX; x++) {
                 if (cellCounts[y][x] < MAX_ENTITIES_PER_CELL) {
@@ -79,18 +76,30 @@ void UpdateGrass(GrassSystem* gs, Entity* entities, int count) {
                 int entityIdx = cellContents[gy][gx][k];
                 Entity* e = &entities[entityIdx];
 
-                float radius = e->size + 20.0f; 
+                float radius = e->size + 15.0f; 
                 float dist = Vector2Distance(g->position, e->position);
                 
                 if(dist < radius) {
+                    // --- FIXED PHYSICS LOGIC ---
+                    
+                    // 1. Calculate Strength based on Proximity (0.0 to 1.0)
+                    // Closer = Stronger. This ensures max bend at the center.
+                    float strength = (1.0f - (dist / radius));
+                    
+                    // 2. Determine Direction
                     float dx = g->position.x - e->position.x;
-                    float pushFactor = dx / radius; 
+                    float dir = (dx >= 0) ? 1.0f : -1.0f;
                     
-                    float speedFactor = Vector2Length(e->velocity) / 200.0f; 
-                    if(speedFactor < 1.0f) speedFactor = 1.0f; 
-                    if(speedFactor > 3.0f) speedFactor = 3.0f; 
+                    // 3. Trample Fix: If directly vertical (dx ~ 0), force a side bend
+                    // This prevents grass "standing up" when you walk straight up/down
+                    if (fabsf(dx) < 2.0f) {
+                        dir = (i % 2 == 0) ? 1.0f : -1.0f; // Alternate left/right
+                    }
                     
-                    pushOffset += pushFactor * 2.5f * speedFactor; 
+                    // 4. Apply Force
+                    // Multiply strength by max_bend (e.g., 2.0 radians)
+                    pushOffset += dir * strength * 2.0f;
+                    
                     isInteracting = true;
                 }
             }
@@ -98,11 +107,12 @@ void UpdateGrass(GrassSystem* gs, Entity* entities, int count) {
         
         g->targetAngle = wind + pushOffset;
         
-        // Asymmetric Physics: React Fast, Recover Slow
-        float lerpSpeed = isInteracting ? 0.25f : g->stiffness; 
+        // Asymmetric Physics: 
+        // Snap fast when hit (0.3), Recover slow (stiffness)
+        float lerpSpeed = isInteracting ? 0.3f : g->stiffness; 
         g->angle += (g->targetAngle - g->angle) * lerpSpeed;
         
-        // Clamp
+        // Clamp Angle (Prevent spinning)
         if(g->angle > 1.8f) g->angle = 1.8f; 
         if(g->angle < -1.8f) g->angle = -1.8f;
     }
