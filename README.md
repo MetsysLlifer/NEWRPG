@@ -10,10 +10,11 @@ Welcome to NEWRPG, a top-down 2D physics-based RPG featuring dynamic entity inte
 
 ## Inspiration
 
-NEWRPG draws its core inspiration from two innovative games:
+NEWRPG draws its core inspiration from three innovative games:
 
-*   **Noita:** The deep, emergent physics and chemistry simulation that allows for creative problem-solving and gloriously chaotic fun.
-*   **CodeSpells:** The concept of programmable interactions and seeing your creations come to life.
+* **Noita:** Deep, emergent physics and chemistry enabling creative problem‑solving.
+* **CodeSpells:** Programmable interactions and seeing your creations come to life.
+* **Minecraft:** Sandbox creativity, systemic interactions, and player‑driven worldbuilding.
 
 ## About the Game
 
@@ -72,18 +73,31 @@ The project uses a `makefile` for a streamlined build process.
 
 ## File Structure
 
-Here is a brief overview of the key source files:
-
+### Current (v3)
 | File          | Description                                               |
 |---------------|-----------------------------------------------------------|
 | `main.c`      | The main entry point and game loop.                       |
-| `game.h`      | Main header with core data structures and declarations.   |
-| `graphics.c`  | Handles all rendering and graphics-related logic.         |
-| `physics.c`   | Manages the physics simulation for entities.   |
-| `particles.c` | Implements the particle engine for visual effects.        |
-| `inventory.c` | Manages the player's inventory.                           |
-| `ui.c`        | Responsible for drawing UI elements to the screen.        |
-| `makefile`    | Defines the build process and rules for compilation.      |
+| `game.h`      | Core data structures and declarations.                    |
+| `graphics.c`  | Rendering routines (world, entities, grass).              |
+| `physics.c`   | Physics update, collisions, and bounds handling.          |
+| `particles.c` | Particle effects for explosions and feedback.             |
+| `inventory.c` | Item pickup, drop, and slot management.                   |
+| `ui.c`        | HUD and inventory drawing.                                |
+| `makefile`    | Build rules using clang and raylib.                       |
+
+### Legacy (NEWRPG v2.1)
+Located in `NEWRPG (v2.1)/` and kept for reference.
+| File                 | Description                                           |
+|----------------------|-------------------------------------------------------|
+| `main.c`             | Legacy game loop with magic-focused gameplay.         |
+| `game.h`             | Legacy data structures, including spell metadata.     |
+| `magic.c`            | Spell crafting and fusion logic.                      |
+| `graphics.c`         | Rendering with spell visuals.                         |
+| `physics.c`          | Physics plus spell-specific behaviors.                |
+| `particles.c`        | Particle effects for spells.                          |
+| `inventory.c`        | Inventory for spell components.                       |
+| `ui.c`               | UI with compendium and spell wheel.                   |
+| `makefile`           | Legacy build rules.                                   |
 
 ## Contributing
 
