@@ -24,7 +24,7 @@
 #define GRID_CELL_SIZE 80
 #define GRID_COLS (SCREEN_WIDTH / GRID_CELL_SIZE + 1)
 #define GRID_ROWS (SCREEN_HEIGHT / GRID_CELL_SIZE + 1)
-#define MAX_ENTITIES_PER_CELL 32 // Max objects we expect in one small area
+#define MAX_ENTITIES_PER_CELL 1 // Max objects we expect in one small area
 
 #ifndef PI
 #define PI 3.14159265358979323846f

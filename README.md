@@ -1,5 +1,7 @@
 # NEWRPG
 
+**Version 2.1**
+
 Welcome to NEWRPG, a top-down 2D sandbox RPG where your creativity is your most powerful weapon. Dive into a dynamic, physics-based world, and craft powerful, custom spells to shape your environment and vanquish your foes.
 
 ## Inspiration
