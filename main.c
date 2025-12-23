@@ -39,7 +39,7 @@ int main() {
 
         // MINE
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            EditWorld(gx, gy, BLOCK_AIR, brushRadius); 
+            EditWorld(gx, gy, BLOCK_DIRT, brushRadius); 
         }
 
         // BUILD
@@ -67,7 +67,7 @@ int main() {
 
         // --- RENDER ---
         BeginDrawing();
-            ClearBackground((Color){20, 20, 30, 255}); 
+            ClearBackground((Color){20, 20, 30, 255});
 
             BeginMode2D(camera);
                 DrawWorld();

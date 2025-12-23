@@ -6,6 +6,7 @@ static Cell nextGrid[GRID_H][GRID_W];
 
 // Generate noise colors for texture
 Color GetBlockColor(BlockType t) {
+    // Makes block not look too dull by tweaking the element's color
     int v = GetRandomValue(-15, 15);
     switch(t) {
         case BLOCK_STONE: return (Color){100+v, 100+v, 100+v, 255};
@@ -39,20 +40,56 @@ int GetDensity(BlockType t) {
 }
 
 void InitWorld() {
-    for(int y=0; y<GRID_H; y++) {
-        for(int x=0; x<GRID_W; x++) {
-            grid[y][x].type = BLOCK_AIR;
-            grid[y][x].active = false;
+    // 1. Generate a Perlin noise map using Raylib
+    // Parameters: Width, Height, OffsetX, OffsetY, Scale
+    // We use GetRandomValue for offsets so the map is different every time you press 'R'
+    float freq = 1.0f; // frequency (noise scale)
+        // Lower Scale (e.g., 1.0f): Zooms in. The blobs of Sand and Stone become huge.
+        // Higher Scale (e.g., 10.0f): Zooms out. The terrain looks like scattered noise or static.
+
+        // 8.0f+ = Tiny Features: Scattered static, small dots of stone/sand.
+        // 4.0f = Medium Features: Distinct patches (Current setting).
+        // 1.0f = Large Features: Massive continents of stone or sand.
+        // 0.2f = Huge Features: The entire screen might be just one material.
+    Image noiseMap = GenImagePerlinNoise(GRID_W, GRID_H, GetRandomValue(0, 1000), GetRandomValue(0, 1000), freq);
+    
+    // 2. Load the pixel data so we can read values
+    Color* pixels = LoadImageColors(noiseMap);
+
+    for(int y=0; y < GRID_H; y++){
+        for(int x=0; x < GRID_W; x++){
+            // 3. Read the noise value (0.0 to 1.0)
+            // Since it's grayscale, R, G, and B are the same. We normalize to 0.0-1.0.
+            float noiseVal = pixels[y * GRID_W + x].r / 255.0f;
+
+            BlockType type = BLOCK_DIRT; // Default base
+
+            // 4. Thresholding: Decide block based on noise height
+            if (noiseVal < 0.30f) {
+                type = BLOCK_STONE;      // Hard patches
+            } 
+            else if (noiseVal < 0.35f) {
+                type = BLOCK_SAND;       // Transition border
+            }
+            else if (noiseVal > 0.65f) {
+                type = BLOCK_WATER;       // Sandy patches
+            }
             
-            // Generate Floor
-            if (y > GRID_H - 5) grid[y][x] = (Cell){BLOCK_STONE, 0, true, GetBlockColor(BLOCK_STONE)};
-            else if (y > GRID_H - 15) grid[y][x] = (Cell){BLOCK_DIRT, 0, true, GetBlockColor(BLOCK_DIRT)};
+            // 5. Apply to Grid
+            grid[y][x].type = type;
+            grid[y][x].active = true;
+            grid[y][x].color = GetBlockColor(type);
+            grid[y][x].life = 0;
         }
     }
+
+    // 6. Cleanup memory
+    UnloadImageColors(pixels);
+    UnloadImage(noiseMap);
 }
 
 bool IsSolid(BlockType t) {
-    return (t == BLOCK_STONE || t == BLOCK_WOOD || t == BLOCK_DIRT || t == BLOCK_SAND);
+    return (t == BLOCK_STONE || t == BLOCK_WOOD || t == BLOCK_SAND);
 }
 
 bool IsValid(int x, int y) {
@@ -66,12 +103,13 @@ void EditWorld(int x, int y, BlockType type, int radius) {
             int nx = x + i; int ny = y + j;
             if (IsValid(nx, ny)) {
                 // Don't overwrite Solids (Stone) with fluids, unless mining (Air)
-                if (type == BLOCK_AIR || !IsSolid(grid[ny][nx].type)) {
+                if (type == BLOCK_DIRT || !IsSolid(grid[ny][nx].type)) {
                     grid[ny][nx].type = type;
+                    // Add color based on what type of element on the screen
                     grid[ny][nx].color = GetBlockColor(type);
                     
                     // Initialize spread life
-                    if (type == BLOCK_WATER) grid[ny][nx].life = 10; 
+                    if (type == BLOCK_WATER) grid[ny][nx].life = 5; 
                     else if (type == BLOCK_LAVA) grid[ny][nx].life = 20;
                     else if (type == BLOCK_FIRE) grid[ny][nx].life = 100;
                     else grid[ny][nx].life = 0;
@@ -96,7 +134,7 @@ void UpdateWorld() {
     for(int y = 0; y < GRID_H; y++) {
         for(int x = 0; x < GRID_W; x++) {
             Cell c = grid[y][x];
-            if (c.type == BLOCK_AIR) continue;
+            if (c.type == BLOCK_DIRT) continue;
 
             // Coordinates (x, y)
             int dx = 0, dy = 0; 
@@ -134,7 +172,7 @@ void UpdateWorld() {
                     int targetDen = GetDensity(target);
 
                     // Move if empty OR Displace if heavier
-                    if (target == BLOCK_AIR || (!IsSolid(target) && myDen > targetDen)) {
+                    if (target == BLOCK_DIRT || (!IsSolid(target) && myDen > targetDen)) {
                         if (nextGrid[y+dy][x+dx].type == target) {
                             nextGrid[y+dy][x+dx] = c;
                             nextGrid[y+dy][x+dx].life--;
@@ -145,7 +183,7 @@ void UpdateWorld() {
             }
 
             // --- FIRE ---
-            else if (c.type == BLOCK_FIRE) {
+            else if (c.type == BLOCK_FIRE || c.type == BLOCK_LAVA) {
                 // Spread
                 for(int i=-1; i<=1; i++) {
                     for(int j=-1; j<=1; j++) {
@@ -189,15 +227,15 @@ void UpdateWorld() {
                             dx = 1;
                     }
                     
-                    if (IsValid(x+dx, y+dy) && grid[y+dy][x+dx].type == BLOCK_AIR) {
-                         if (nextGrid[y+dy][x+dx].type == BLOCK_AIR) {
+                    if (IsValid(x+dx, y+dy) && grid[y+dy][x+dx].type == BLOCK_DIRT) {
+                         if (nextGrid[y+dy][x+dx].type == BLOCK_DIRT) {
                             nextGrid[y+dy][x+dx] = c;
-                            nextGrid[y][x].type = BLOCK_AIR;
+                            nextGrid[y][x].type = BLOCK_DIRT;
                          }
                     }
                 }
                 nextGrid[y][x].life--;
-                if(nextGrid[y][x].life <= 0) nextGrid[y][x].type = BLOCK_AIR;
+                if(nextGrid[y][x].life <= 0) nextGrid[y][x].type = BLOCK_DIRT;
             }
         }
     }
@@ -249,13 +287,12 @@ bool CheckCollision(Vector2 pos, float radius) {
 
 void UpdatePlayer(Player* p, float dt) {
     Vector2 input = {0,0};
-    if (IsKeyDown(KEY_W)) input.y -= 1;
-    if (IsKeyDown(KEY_S)) input.y += 1;
-    if (IsKeyDown(KEY_A)) input.x -= 1;
-    if (IsKeyDown(KEY_D)) input.x += 1;
+    if(IsKeyDown(KEY_W) || IsKeyDown(KEY_S)) input.y = IsKeyDown(KEY_W)? -1: 1;
+    if(IsKeyDown(KEY_A) || IsKeyDown(KEY_D)) input.x = IsKeyDown(KEY_A)? -1: 1;
     
     if (Vector2Length(input) > 0) input = Vector2Normalize(input);
     
+    // This holds the time consistency without using GetFrameTime
     p->velocity = Vector2Scale(input, 200.0f); // 200 pixels/sec speed
     
     // --- MOVE AND SLIDE LOGIC ---

@@ -11,13 +11,17 @@ void DrawHUD(Player* p, Inventory* inv) {
         Rectangle slot = { startX + i*45, y, 40, 40 };
         
         if (inv->selected == i) {
+            // Selected (Highlighted)
             DrawRectangleRec(slot, WHITE);
+            // Displays element's color in the inventory
             DrawRectangle(slot.x+2, slot.y+2, 36, 36, Fade(BlockColors[inv->slots[i]], 0.8f));
         } else {
             DrawRectangleRec(slot, Fade(BLACK, 0.5f));
+            // Here as well, displays element's color in the inventory
             DrawRectangle(slot.x+2, slot.y+2, 36, 36, BlockColors[inv->slots[i]]);
         }
         
+        // Add border and number for every slot
         DrawRectangleLinesEx(slot, 1, DARKGRAY);
         DrawText(TextFormat("%d", i+1), slot.x+2, slot.y+2, 10, WHITE);
     }

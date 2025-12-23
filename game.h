@@ -57,6 +57,7 @@ void DrawWorld();
 void InitPlayer(Player* p);
 void UpdatePlayer(Player* p, float dt);
 void DrawPlayer(Player* p);
+Color GetBlockColor(BlockType t);
 
 // Interaction
 void EditWorld(int x, int y, BlockType type, int radius);
