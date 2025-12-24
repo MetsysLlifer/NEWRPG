@@ -183,7 +183,7 @@ void UpdateWorld() {
             }
 
             // --- FIRE ---
-            else if (c.type == BLOCK_FIRE || c.type == BLOCK_LAVA) {
+            else if (c.type == BLOCK_FIRE) {
                 // Spread
                 for(int i=-1; i<=1; i++) {
                     for(int j=-1; j<=1; j++) {
