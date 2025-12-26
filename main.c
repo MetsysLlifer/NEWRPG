@@ -1,6 +1,8 @@
 #include "game.h"
 
 int main() {
+    // Initialization
+    //--------------------------------------------------------------------------------------
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Mine-Noita-Craft: Physics Sandbox");
     SetTargetFPS(60);
 
@@ -20,8 +22,16 @@ int main() {
     camera.offset = (Vector2){SCREEN_WIDTH/2, SCREEN_HEIGHT/2};
     camera.target = player.position; // Start centered on player
 
+    // Add trail to the player
+    Vector2 trailPositions[MAX_TRAIL_LENGTH] = {0};
+
+    //--------------------------------------------------------------------------------------
+    // Main game loop
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
+
+        // --- UPDATE TRAIL ---
+        UpdateTrail(trailPositions, player);
         
         // --- INPUTS ---
         
@@ -71,6 +81,7 @@ int main() {
 
             BeginMode2D(camera);
                 DrawWorld();
+                Trail(&player, trailPositions);
                 DrawPlayer(&player);
                 
                 // Draw Cursor (Centered on the brush area)

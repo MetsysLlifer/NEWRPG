@@ -26,8 +26,9 @@ int GetDensity(BlockType t) {
     switch(t) {
         case BLOCK_STONE: 
         case BLOCK_DIRT:
-        case BLOCK_SAND:
         case BLOCK_WOOD: return 1000; // Immovable Solids
+
+        case BLOCK_SAND: return 500;
         
         case BLOCK_LAVA: return 100;  // Heavy Liquid
         case BLOCK_WATER: return 50;  // Light Liquid
@@ -43,7 +44,7 @@ void InitWorld() {
     // 1. Generate a Perlin noise map using Raylib
     // Parameters: Width, Height, OffsetX, OffsetY, Scale
     // We use GetRandomValue for offsets so the map is different every time you press 'R'
-    float freq = 1.0f; // frequency (noise scale)
+    float freq = 0.2f; // frequency (noise scale)
         // Lower Scale (e.g., 1.0f): Zooms in. The blobs of Sand and Stone become huge.
         // Higher Scale (e.g., 10.0f): Zooms out. The terrain looks like scattered noise or static.
 
@@ -62,24 +63,29 @@ void InitWorld() {
             // Since it's grayscale, R, G, and B are the same. We normalize to 0.0-1.0.
             float noiseVal = pixels[y * GRID_W + x].r / 255.0f;
 
-            BlockType type = BLOCK_DIRT; // Default base
+            // SETUP FLOOR (Background)
+            // The floor is always DIRT (or you can add noise for Stone floors)
+            grid[y][x].floor = BLOCK_DIRT;
+            // Generate the color ONCE and save it.
+            grid[y][x].floorColor = GetBlockColor(BLOCK_DIRT);
+
+            // SETUP OBJECTS (Foreground)
+            // By default, the foreground is AIR (Empty, so we see the floor)
+            BlockType fgType = BLOCK_AIR;
 
             // 4. Thresholding: Decide block based on noise height
-            if (noiseVal < 0.30f) {
-                type = BLOCK_STONE;      // Hard patches
-            } 
-            else if (noiseVal < 0.35f) {
-                type = BLOCK_SAND;       // Transition border
-            }
-            else if (noiseVal > 0.65f) {
-                type = BLOCK_WATER;       // Sandy patches
-            }
+            if (noiseVal < 0.30f) fgType = BLOCK_STONE;      // Hard patches
+            else if (noiseVal < 0.35f) fgType = BLOCK_SAND;       // Transition border
+            else if (noiseVal > 0.65f) fgType = BLOCK_WATER;       // Sandy patches
             
             // 5. Apply to Grid
-            grid[y][x].type = type;
+            grid[y][x].type = fgType;
             grid[y][x].active = true;
-            grid[y][x].color = GetBlockColor(type);
-            grid[y][x].life = 0;
+            grid[y][x].color = GetBlockColor(fgType);
+            // grid[y][x].life = 0;
+
+            if (fgType == BLOCK_WATER) grid[y][x].life = 5;
+            else grid[y][x].life = 0;
         }
     }
 
@@ -90,6 +96,8 @@ void InitWorld() {
 
 bool IsSolid(BlockType t) {
     return (t == BLOCK_STONE || t == BLOCK_WOOD || t == BLOCK_SAND);
+    // Dirst is not included because it's considered as the floor
+    // These are ON TOP of the floor, which is dirt, that block player
 }
 
 bool IsValid(int x, int y) {
@@ -100,16 +108,21 @@ bool IsValid(int x, int y) {
 void EditWorld(int x, int y, BlockType type, int radius) {
     for(int j = -radius; j <= radius; j++) {
         for(int i = -radius; i <= radius; i++) {
-            int nx = x + i; int ny = y + j;
+            int nx = x + i;
+            int ny = y + j;
             if (IsValid(nx, ny)) {
-                // Don't overwrite Solids (Stone) with fluids, unless mining (Air)
-                if (type == BLOCK_DIRT || !IsSolid(grid[ny][nx].type)) {
-                    grid[ny][nx].type = type;
+
+                // If the user selects DIRT, they are "Cleaning" the foreground to reveal the floor
+                BlockType placeType = (type == BLOCK_DIRT) ? BLOCK_AIR : type;
+
+                // Don't overwrite Solids if we are placing fluid (unless clearing with Air)
+                if (type == BLOCK_AIR || !IsSolid(grid[ny][nx].type)) {
+                    grid[ny][nx].type = placeType;
                     // Add color based on what type of element on the screen
-                    grid[ny][nx].color = GetBlockColor(type);
+                    grid[ny][nx].color = GetBlockColor(placeType);
                     
                     // Initialize spread life
-                    if (type == BLOCK_WATER) grid[ny][nx].life = 5; 
+                    if (placeType == BLOCK_WATER) grid[ny][nx].life = 5; 
                     else if (type == BLOCK_LAVA) grid[ny][nx].life = 20;
                     else if (type == BLOCK_FIRE) grid[ny][nx].life = 100;
                     else grid[ny][nx].life = 0;
@@ -134,7 +147,9 @@ void UpdateWorld() {
     for(int y = 0; y < GRID_H; y++) {
         for(int x = 0; x < GRID_W; x++) {
             Cell c = grid[y][x];
-            if (c.type == BLOCK_DIRT) continue;
+
+            // Skip Empty Air (Optimization)
+            if (c.type == BLOCK_AIR || c.type == BLOCK_DIRT || IsSolid(c.type)) continue;
 
             // Coordinates (x, y)
             int dx = 0, dy = 0; 
@@ -142,10 +157,13 @@ void UpdateWorld() {
             // --- FLUIDS (Water, Lava) ---
             if (c.type == BLOCK_WATER || c.type == BLOCK_LAVA) {
                 if (c.life <= 0) continue; // Settled
-
                 // Viscosity check
-                int skipChance = (c.type == BLOCK_LAVA) ? 10 : 2;
-                if (GetRandomValue(0, skipChance) != 0) continue;
+                // int skipChance = (c.type == BLOCK_LAVA) ? 10 : 2;
+                // if (GetRandomValue(0, skipChance) != 0) continue;
+                if (c.type == BLOCK_LAVA && GetRandomValue(0, 10) != 0) continue; // Viscosity
+                if (c.type == BLOCK_WATER && GetRandomValue(0, 2) != 0) continue;
+
+                
 
                 // Random Direction
                 int dir = GetRandomValue(0, 3);
@@ -171,12 +189,20 @@ void UpdateWorld() {
                     int myDen = GetDensity(c.type);
                     int targetDen = GetDensity(target);
 
-                    // Move if empty OR Displace if heavier
-                    if (target == BLOCK_DIRT || (!IsSolid(target) && myDen > targetDen)) {
+                    // Move if target is AIR or Lighter Fluid
+                    // We check 'target != BLOCK_DIRT' just in case, to protect the floor.
+                    if (target != BLOCK_DIRT && !IsSolid(target) && myDen > targetDen) {
+                        // Check NextGrid to avoid race conditions
                         if (nextGrid[y+dy][x+dx].type == target) {
-                            nextGrid[y+dy][x+dx] = c;
-                            nextGrid[y+dy][x+dx].life--;
-                            nextGrid[y][x] = grid[y+dy][x+dx]; // Swap
+                            
+                            // 1. Move Fluid to New Spot
+                            nextGrid[y+dy][x+dx].type = c.type;
+                            nextGrid[y+dy][x+dx].life = c.life - 1;
+                            nextGrid[y+dy][x+dx].color = c.color;
+
+                            // 2. Leave AIR behind at Old Spot (Revealing the Dirt Floor)
+                            nextGrid[y][x].type = BLOCK_AIR; 
+                            // Note: We do NOT touch .floor, so the dirt stays!
                         }
                     }
                 }
@@ -240,7 +266,7 @@ void UpdateWorld() {
         }
     }
 
-    // 3. Swap
+    // 3. Swap (Apply)
     for(int y=0; y<GRID_H; y++) {
         for(int x=0; x<GRID_W; x++) {
             grid[y][x] = nextGrid[y][x];
@@ -250,10 +276,49 @@ void UpdateWorld() {
 
 // --- RENDER GRID ---
 void DrawWorld() {
+    // Thickness of the border lines (1 or 2 looks best)
+    int lineThickness = 2; 
+
     for(int y=0; y<GRID_H; y++) {
         for(int x=0; x<GRID_W; x++) {
-            if (grid[y][x].type != BLOCK_AIR) {
-                DrawRectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, grid[y][x].color);
+            Cell c = grid[y][x];
+            // if (c.type == BLOCK_AIR) continue;
+
+            int px = x * CELL_SIZE;
+            int py = y * CELL_SIZE;
+
+            // ALWAYS Draw Floor First (Dirt)
+            // Even if there is water, we draw dirt first so it shows through transparent water
+            DrawRectangle(px, py, CELL_SIZE, CELL_SIZE, c.floorColor);
+
+            // Draw Foreground (If not Air)
+            if (c.type != BLOCK_AIR) {
+                DrawRectangle(px, py, CELL_SIZE, CELL_SIZE, c.color);
+            }
+
+            // 2. Draw Outlines ONLY for Solid blocks (Walls)
+            if (IsSolid(c.type)) {
+                Color outlineColor = Fade(BLACK, 0.5f);
+                
+                // --- BORDER LOGIC ---
+                // We draw a border if the neighbor is a DIFFERENT TYPE.
+                // This separates Stone from Dirt, but also Stone from Wood.
+                
+                // Check UP
+                if (IsValid(x, y-1) && grid[y-1][x].type != c.type) 
+                    DrawRectangle(px, py, CELL_SIZE, lineThickness, outlineColor);
+                
+                // Check DOWN
+                if (IsValid(x, y+1) && grid[y+1][x].type != c.type) 
+                    DrawRectangle(px, py + CELL_SIZE - lineThickness, CELL_SIZE, lineThickness, outlineColor);
+
+                // Check LEFT
+                if (IsValid(x-1, y) && grid[y][x-1].type != c.type) 
+                    DrawRectangle(px, py, lineThickness, CELL_SIZE, outlineColor);
+
+                // Check RIGHT
+                if (IsValid(x+1, y) && grid[y][x+1].type != c.type) 
+                    DrawRectangle(px + CELL_SIZE - lineThickness, py, lineThickness, CELL_SIZE, outlineColor);
             }
         }
     }
@@ -317,6 +382,44 @@ void UpdatePlayer(Player* p, float dt) {
 }
 
 void DrawPlayer(Player* p) {
-    DrawRectangle(p->position.x - p->size, p->position.y - p->size, p->size*2, p->size*2, p->color);
-    DrawRectangleLines(p->position.x - p->size, p->position.y - p->size, p->size*2, p->size*2, BLACK);
+    DrawCircle(p->position.x, p->position.y, p->size*2, p->color);
+    DrawCircleLines(p->position.x, p->position.y, p->size*2, BLACK);
+    // DrawRectangle(p->position.x - p->size, p->position.y - p->size, p->size*2, p->size*2, p->color);
+    // DrawRectangleLines(p->position.x - p->size, p->position.y - p->size, p->size*2, p->size*2, BLACK);
+}
+
+void Trail(Player* p, Vector2 *trailPositions){
+        // Draw trail
+    // Draw the trail by looping through the history array
+    for (int i = 0; i < MAX_TRAIL_LENGTH; i++)
+    {
+        // Ensure we skip drawing if the array hasn't been fully filled on startup
+        if ((trailPositions[i].x != 0.0f) || (trailPositions[i].y != 0.0f))
+        {
+            // Calculate relative trail strength (ratio is near 1.0 for new, near 0.0 for old)
+            float ratio = (float)(MAX_TRAIL_LENGTH - i)/MAX_TRAIL_LENGTH - 0.1;
+
+            // Fade effect: oldest positions are more transparent
+            // Fade (color, alpha) - alpha is 0.5 to 1.0 based on ratio
+            Color trailColor = Fade(LIGHTGRAY, ratio*0.5f + 0.5f);
+
+            // Size effect: oldest positions are smaller
+            float trailRadius = 15.0f*ratio;
+
+            DrawCircleV(trailPositions[i], trailRadius, trailColor);
+        }
+    }
+}
+
+
+void UpdateTrail(Vector2* trailPositions, Player p){
+    // Shift all existing positions backward by one slot in the array
+    // The last element (the oldest position) is dropped
+    for (int i = MAX_TRAIL_LENGTH - 1; i > 0; i--)
+    {
+        trailPositions[i] = trailPositions[i - 1];
+    }
+
+    // Store the new, current mouse position at the start of the array (Index 0)
+    trailPositions[0] = p.position;
 }

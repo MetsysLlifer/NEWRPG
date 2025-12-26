@@ -12,6 +12,7 @@
 #define CELL_SIZE 4
 #define GRID_W (SCREEN_WIDTH / CELL_SIZE)
 #define GRID_H (SCREEN_HEIGHT / CELL_SIZE)
+#define MAX_TRAIL_LENGTH 10 // maximum number of positions to store in the trail
 
 // --- BLOCK TYPES ---
 typedef enum {
@@ -43,10 +44,14 @@ typedef struct {
 
 // --- GRID SYSTEM ---
 typedef struct {
-    BlockType type;
-    int life;       // Acts as "Stamina" for liquids (spread distance) or "Health" for fire
-    bool active;    // Optimization flag
-    Color color;    // Persistent texture color
+    BlockType type; // FOREGROUND: Wall, Water, Fire, or AIR (Empty)
+    Color color;    // Foreground color
+
+    BlockType floor;    // BACKGROUND: Always Dirt (or other floor types)
+    Color floorColor;   // Background Color (It would flicker if we would not save it)
+
+    int life;   // Acts as "Stamina" for liquids (spread distance) or "Health" for fire
+    bool active;    // Optimization flag (not yet used)
 } Cell;
 
 // --- PROTOTYPES ---
@@ -55,6 +60,7 @@ void UpdateWorld(); // Cellular Automata Logic
 void DrawWorld();
 
 void InitPlayer(Player* p);
+void UpdateTrail(Vector2* trailPositions, Player p);
 void UpdatePlayer(Player* p, float dt);
 void DrawPlayer(Player* p);
 Color GetBlockColor(BlockType t);
@@ -66,5 +72,8 @@ int GetDensity(BlockType t); // New Density Check
 
 // UI
 void DrawHUD(Player* p, Inventory* inv);
+
+// FX
+void Trail(Player* p, Vector2 *trailPositions);
 
 #endif
